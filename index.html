@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio URL Transcriber</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #60a5fa;
+      --border: #374151;
+      --good: #10b981;
+      --bad: #ef4444;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    }
+    textarea, input, select {
+      width: 100%;
+      background: #0b1220;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    textarea { min-height: 260px; resize: vertical; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 180px; }
+    button {
+      background: var(--accent);
+      color: #08111f;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #1f2937;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .small { font-size: 12px; color: var(--muted); }
+    .status { margin-top: 8px; color: var(--muted); }
+    .pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-left: 6px;
+    }
+    .audio-list { display: grid; gap: 12px; max-height: 70vh; overflow: auto; padding-right: 4px; }
+    .audio-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: #0b1220;
+    }
+    .audio-item h3 { font-size: 16px; margin-bottom: 8px; }
+    audio { width: 100%; }
+    .meta { font-size: 12px; color: var(--muted); word-break: break-all; }
+    .transcript {
+      white-space: pre-wrap;
+      background: #111827;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 10px;
+      min-height: 70px;
+    }
+    .ok { color: var(--good); }
+    .error { color: var(--bad); }
+    .warn { color: var(--warn); }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Audio URL Transcriber</h1>
+    <p class="small">Paste raw HTML that contains audio tags, extract the MP3 URLs, preview them, and send them to your local backend for transcription.</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>1) Paste the recovered audio tags</h2>
+        <textarea id="rawHtml" placeholder="Paste the HTML or audio tags here..."></textarea>
+        <div class="row" style="margin-top: 12px;">
+          <button id="extractBtn">Extract audio URLs</button>
+          <button id="loadSampleBtn" class="secondary">Load sample from this case</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+        <p class="status" id="extractStatus">No audio extracted yet.</p>
+
+        <h2 style="margin-top: 22px;">2) Configure backend</h2>
+        <div class="row">
+          <div>
+            <label for="backendUrl" class="small">Backend URL</label>
+            <input id="backendUrl" value="http://localhost:3000" />
+          </div>
+          <div>
+            <label for="model" class="small">Transcription model</label>
+            <select id="model">
+              <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
+              <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
+              <option value="whisper-1">whisper-1</option>
+            </select>
+          </div>
+          <div>
+            <label for="language" class="small">Language hint</label>
+            <input id="language" value="fr" placeholder="fr, en, es..." />
+          </div>
+        </div>
+        <div class="row" style="margin-top: 12px;">
+          <button id="healthBtn" class="secondary">Check backend</button>
+          <button id="transcribeAllBtn">Transcribe all</button>
+          <button id="exportBtn" class="secondary">Export JSON</button>
+        </div>
+        <p class="status" id="backendStatus">Backend not checked yet.</p>
+
+        <h2 style="margin-top: 22px;">3) Notes</h2>
+        <ul class="small">
+          <li>The standalone HTML uses <strong>axios</strong> in the browser.</li>
+          <li>The browser should call your <strong>local Node backend</strong>, not OpenAI directly, so your API key stays private.</li>
+          <li>The backend downloads the remote MP3 and forwards it to the transcription API.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Extracted audios <span class="pill" id="countPill">0</span></h2>
+        <div id="audioList" class="audio-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const SAMPLE_HTML = `<audio src="https://examens.preptcfcanada.com/wp-content/uploads/2022/04/Test-4-%E2%80%93-Q1.mp3?_=1"></audio>
+<audio src="https://examens.preptcfcanada.com/wp-content/uploads/2022/04/Test-4-%E2%80%93-Q2.mp3?_=2"></audio>
+<audio src="https://examens.preptcfcanada.com/wp-content/uploads/2022/04/Test-4-%E2%80%93-Q3.mp3?_=3"></audio>`;
+
+    const state = { items: [] };
+
+    const el = (id) => document.getElementById(id);
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function parseAudioUrls(raw) {
+      const regex = /<audio[^>]*\bsrc=["']([^"']+\.(?:mp3|wav|m4a|webm|mpeg|mp4)(?:\?[^"']*)?)["'][^>]*>/gi;
+      const urls = [];
+      let match;
+      while ((match = regex.exec(raw)) !== null) {
+        urls.push(match[1]);
+      }
+      return [...new Set(urls)];
+    }
+
+    function inferTitle(url, index) {
+      try {
+        const clean = url.split('?')[0];
+        const file = clean.substring(clean.lastIndexOf('/') + 1);
+        return decodeURIComponent(file).replace(/[-_]+/g, ' ');
+      } catch {
+        return `Audio ${index + 1}`;
+      }
+    }
+
+    function render() {
+      const list = el('audioList');
+      const count = state.items.length;
+      el('countPill').textContent = String(count);
+
+      if (!count) {
+        list.innerHTML = '<p class="small">Nothing extracted yet.</p>';
+        return;
+      }
+
+      list.innerHTML = state.items.map((item, index) => `
+        <div class="audio-item">
+          <h3>${index + 1}. ${escapeHtml(item.title)}</h3>
+          <div class="meta">${escapeHtml(item.url)}</div>
+          <audio controls preload="none" src="${escapeHtml(item.url)}"></audio>
+          <div class="row" style="margin-top: 10px;">
+            <button onclick="transcribeOne(${index})">Transcribe</button>
+            <button class="secondary" onclick="copyTranscript(${index})">Copy transcript</button>
+          </div>
+          <div class="status ${item.error ? 'error' : item.transcript ? 'ok' : ''}">${item.status || 'Ready'}</div>
+          <div class="transcript">${escapeHtml(item.transcript || item.error || 'Transcript will appear here...')}</div>
+        </div>
+      `).join('');
+    }
+
+    async function checkBackend() {
+      const base = el('backendUrl').value.trim().replace(/\/$/, '');
+      el('backendStatus').textContent = 'Checking backend...';
+      try {
+        const res = await axios.get(`${base}/health`);
+        el('backendStatus').innerHTML = `<span class="ok">Backend OK</span> - ${res.data.message || 'ready'}`;
+      } catch (error) {
+        el('backendStatus').innerHTML = `<span class="error">Backend check failed</span> - ${error.message}`;
+      }
+    }
+
+    async function transcribeOne(index) {
+      const base = el('backendUrl').value.trim().replace(/\/$/, '');
+      const model = el('model').value;
+      const language = el('language').value.trim();
+      const item = state.items[index];
+      item.status = 'Transcribing...';
+      item.error = '';
+      render();
+
+      try {
+        const res = await axios.post(`${base}/api/transcribe`, {
+          audioUrl: item.url,
+          model,
+          language: language || undefined
+        }, {
+          timeout: 1000 * 60 * 5
+        });
+
+        item.transcript = res.data.text || '';
+        item.status = `Done${res.data.durationSeconds ? ` (${res.data.durationSeconds}s)` : ''}`;
+      } catch (error) {
+        item.error = error?.response?.data?.error || error.message || 'Unknown error';
+        item.status = 'Failed';
+      }
+      render();
+    }
+
+    async function transcribeAll() {
+      for (let i = 0; i < state.items.length; i++) {
+        await transcribeOne(i);
+      }
+    }
+
+    async function copyTranscript(index) {
+      const text = state.items[index].transcript || '';
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
+      state.items[index].status = 'Transcript copied';
+      render();
+    }
+
+    function exportJson() {
+      const payload = state.items.map(({ title, url, transcript, status, error }) => ({ title, url, transcript, status, error }));
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'transcripts.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    el('extractBtn').addEventListener('click', () => {
+      const raw = el('rawHtml').value;
+      const urls = parseAudioUrls(raw);
+      state.items = urls.map((url, index) => ({
+        url,
+        title: inferTitle(url, index),
+        transcript: '',
+        status: 'Ready',
+        error: ''
+      }));
+      el('extractStatus').textContent = `${urls.length} unique audio URL(s) extracted.`;
+      render();
+    });
+
+    el('loadSampleBtn').addEventListener('click', () => {
+      el('rawHtml').value = SAMPLE_HTML;
+    });
+
+    el('clearBtn').addEventListener('click', () => {
+      el('rawHtml').value = '';
+      state.items = [];
+      el('extractStatus').textContent = 'Cleared.';
+      render();
+    });
+
+    el('healthBtn').addEventListener('click', checkBackend);
+    el('transcribeAllBtn').addEventListener('click', transcribeAll);
+    el('exportBtn').addEventListener('click', exportJson);
+
+    window.transcribeOne = transcribeOne;
+    window.copyTranscript = copyTranscript;
+
+    render();
+  </script>
+</body>
+</html>
