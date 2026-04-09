@@ -1,0 +1,13 @@
+services:
+  audio-transcriber:
+    build: .
+    container_name: preptcf-audio-transcriber
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3002:3000"
+    environment:
+      PORT: 3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./resources:/app/resources:ro
