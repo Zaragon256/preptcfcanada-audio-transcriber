@@ -113,6 +113,17 @@ function resolveStoredRun(fileName) {
   return null;
 }
 
+function resolveGeneratedRun(fileName) {
+  const safeName = path.basename(fileName);
+  const generatedPath = path.join(runsDir, safeName);
+
+  if (fs.existsSync(generatedPath)) {
+    return generatedPath;
+  }
+
+  return null;
+}
+
 app.get('/api/examples', (_req, res) => {
   try {
     const files = fs.readdirSync(resourcesDir, { withFileTypes: true })
@@ -211,6 +222,37 @@ app.post('/api/runs', (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to save run.' });
+  }
+});
+
+app.patch('/api/runs/:fileName', (req, res) => {
+  const filePath = resolveGeneratedRun(req.params.fileName || '');
+  const nextName = String(req.body?.name || '').trim();
+
+  if (!filePath) {
+    return res.status(404).json({ error: 'Generated run not found.' });
+  }
+
+  if (!nextName) {
+    return res.status(400).json({ error: 'name is required.' });
+  }
+
+  try {
+    const payload = readJsonFile(filePath);
+
+    if (Array.isArray(payload)) {
+      return res.status(400).json({ error: 'Example runs cannot be renamed.' });
+    }
+
+    payload.name = nextName;
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+
+    res.json({
+      ok: true,
+      run: buildRunSummary(filePath, 'generated')
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to rename run.' });
   }
 });
 
