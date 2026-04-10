@@ -4,416 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Prep TCF Canada Audio Transcriber</title>
+  <meta name="default-backend-url" content="http://192.168.2.57/transcriber/" />
+  <link rel="stylesheet" href="styles/theme.css" />
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <style>
-    :root {
-      --bg: #f5efe4;
-      --paper: rgba(255, 252, 245, 0.92);
-      --paper-strong: #fffaf0;
-      --ink: #1c140d;
-      --muted: #6a5a4b;
-      --line: rgba(54, 39, 26, 0.15);
-      --accent: #b5572f;
-      --accent-dark: #7b2d12;
-      --accent-soft: #f0dbc9;
-      --good: #1c7c54;
-      --bad: #aa2e25;
-      --warn: #9a6a00;
-      --shadow: 0 20px 60px rgba(90, 57, 27, 0.12);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Georgia, "Times New Roman", serif;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(181, 87, 47, 0.18), transparent 30%),
-        radial-gradient(circle at bottom right, rgba(90, 125, 92, 0.18), transparent 28%),
-        linear-gradient(180deg, #fbf6ed 0%, #f3eadb 100%);
-      min-height: 100vh;
-    }
-
-    .shell {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 28px 20px 40px;
-    }
-
-    .hero {
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 18px;
-      align-items: stretch;
-      margin-bottom: 22px;
-    }
-
-    .hero-card,
-    .card {
-      background: var(--paper);
-      backdrop-filter: blur(14px);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-    }
-
-    .hero-card {
-      padding: 26px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-card::after {
-      content: "";
-      position: absolute;
-      right: -40px;
-      top: -40px;
-      width: 180px;
-      height: 180px;
-      border-radius: 50%;
-      background: rgba(181, 87, 47, 0.08);
-    }
-
-    .eyebrow {
-      display: inline-block;
-      margin-bottom: 10px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent-dark);
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-weight: 700;
-    }
-
-    h1, h2, h3 {
-      margin: 0 0 10px;
-      font-weight: 700;
-    }
-
-    h1 {
-      font-size: clamp(2.1rem, 4vw, 3.5rem);
-      line-height: 0.96;
-      max-width: 11ch;
-    }
-
-    p {
-      margin: 0;
-      line-height: 1.5;
-    }
-
-    .hero-copy {
-      max-width: 60ch;
-      color: var(--muted);
-      margin-top: 12px;
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 18px;
-    }
-
-    .status-stack {
-      padding: 22px;
-      display: grid;
-      gap: 14px;
-    }
-
-    .status-box {
-      padding: 16px;
-      border-radius: 18px;
-      background: rgba(255, 250, 240, 0.9);
-      border: 1px solid var(--line);
-    }
-
-    .app-nav {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 999px;
-      padding: 12px 16px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 160ms ease, background 160ms ease, color 160ms ease;
-      background: var(--accent);
-      color: #fff9f1;
-    }
-
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-
-    button.secondary {
-      background: transparent;
-      color: var(--ink);
-      border: 1px solid var(--line);
-    }
-
-    button.ghost {
-      background: rgba(255, 255, 255, 0.5);
-      color: var(--accent-dark);
-      border: 1px solid rgba(181, 87, 47, 0.18);
-    }
-
-    button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .nav-btn.active {
-      background: var(--accent-dark);
-      color: #fff;
-    }
-
-    .view {
-      display: none;
-    }
-
-    .view.active {
-      display: block;
-    }
-
-    .grid {
-      display: grid;
-      gap: 18px;
-    }
-
-    .grid.two {
-      grid-template-columns: 1.05fr 0.95fr;
-    }
-
-    .grid.home {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .card {
-      padding: 22px;
-    }
-
-    .feature-card {
-      min-height: 240px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,0.6), rgba(240,219,201,0.75)),
-        var(--paper);
-    }
-
-    .feature-meta {
-      color: var(--muted);
-      margin-top: 8px;
-      margin-bottom: 20px;
-    }
-
-    .metric {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .metric strong {
-      font-size: 2.2rem;
-      line-height: 1;
-    }
-
-    .small {
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    textarea,
-    input,
-    select {
-      width: 100%;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.76);
-      color: var(--ink);
-      padding: 12px 14px;
-      font: inherit;
-    }
-
-    textarea {
-      min-height: 280px;
-      resize: vertical;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 7px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .row > * {
-      flex: 1;
-      min-width: 180px;
-    }
-
-    .section-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.58);
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .ok { color: var(--good); }
-    .error { color: var(--bad); }
-    .warn { color: var(--warn); }
-
-    .audio-list,
-    .runs-list {
-      display: grid;
-      gap: 14px;
-      max-height: 75vh;
-      overflow: auto;
-      padding-right: 4px;
-    }
-
-    .audio-item,
-    .run-item {
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.6);
-      border-radius: 18px;
-      padding: 16px;
-    }
-
-    .audio-item h3,
-    .run-item h3 {
-      margin-bottom: 6px;
-      font-size: 1rem;
-    }
-
-    .meta {
-      word-break: break-word;
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .status-line {
-      margin-top: 10px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .transcript {
-      margin-top: 10px;
-      min-height: 72px;
-      white-space: pre-wrap;
-      border: 1px dashed rgba(54, 39, 26, 0.18);
-      border-radius: 16px;
-      padding: 12px;
-      background: rgba(255, 250, 240, 0.72);
-      font-size: 14px;
-      line-height: 1.45;
-    }
-
-    audio {
-      width: 100%;
-      margin-top: 10px;
-    }
-
-    .detail-empty {
-      display: grid;
-      place-items: center;
-      min-height: 300px;
-      text-align: center;
-      color: var(--muted);
-      border: 1px dashed var(--line);
-      border-radius: 18px;
-      background: rgba(255,255,255,0.45);
-      padding: 18px;
-    }
-
-    .run-detail-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .run-detail-meta {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-    }
-
-    .inline-status {
-      font-weight: 700;
-    }
-
-    @media (max-width: 980px) {
-      .hero,
-      .grid.two,
-      .grid.home {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
 </head>
 <body>
   <div class="shell">
-    <section class="hero">
-      <div class="hero-card">
+    <div class="top-status-bar">
+      <div class="top-status-main">
+        <span id="topStatusDot" class="status-dot warn"></span>
+        <div class="top-status-label">
+          <span id="topBackendBadge" class="pill">Backend</span>
+          <div class="top-status-copy">
+            <div class="small">Server state</div>
+            <div id="topBackendStatusText" class="top-status-text">Not checked yet.</div>
+          </div>
+        </div>
+      </div>
+      <button id="refreshStatusBtn" type="button" class="icon-btn" title="Refresh server status" aria-label="Refresh server status">&#x21bb;</button>
+    </div>
+
+    <section class="hero hero-home">
+      <div class="hero-card hero-intro">
         <span class="eyebrow">Prep TCF Canada</span>
         <h1>Audio extraction and transcription workspace</h1>
         <p class="hero-copy">
           Start a fresh run from raw page HTML, inspect previous JSON outputs, and verify that the local backend is reachable before you send audio for transcription.
         </p>
-        <div class="hero-actions">
-          <button type="button" onclick="navigate('home')">Overview</button>
-          <button type="button" class="secondary" onclick="navigate('current')">Current run</button>
-          <button type="button" class="secondary" onclick="navigate('runs')">Saved JSONs</button>
-        </div>
-      </div>
-      <div class="hero-card status-stack">
-        <div class="status-box">
-          <div class="small">Backend status</div>
-          <div id="globalBackendStatus" class="status-line">Not checked yet.</div>
-        </div>
-        <div class="status-box">
-          <div class="small">Saved runs detected</div>
-          <div class="metric"><strong id="runCountMetric">0</strong><span class="small">JSON files available</span></div>
-        </div>
-        <div class="status-box">
-          <div class="small">Current extracted audios</div>
-          <div class="metric"><strong id="audioCountMetric">0</strong><span class="small">items in the active workspace</span></div>
-        </div>
       </div>
     </section>
 
@@ -425,12 +42,28 @@
 
     <main>
       <section id="view-home" class="view active">
+        <div class="home-stats">
+          <article class="mini-stat">
+            <div class="small">Saved runs</div>
+            <div class="mini-stat-row"><strong id="runCountMetric">0</strong><span class="small">JSON files available</span></div>
+          </article>
+          <article class="mini-stat">
+            <div class="small">Current workspace</div>
+            <div class="mini-stat-row"><strong id="audioCountMetric">0</strong><span class="small">audios extracted</span></div>
+          </article>
+          <article class="mini-stat">
+            <div class="small">Sample data</div>
+            <div class="mini-stat-row"><strong id="sampleCountMetric">0</strong><span class="small">raw example(s) ready</span></div>
+          </article>
+        </div>
+
         <div class="grid home">
-          <article class="card feature-card">
+          <article class="card feature-card feature-card-primary">
             <div>
               <span class="eyebrow">Start here</span>
               <h2>Process a new raw HTML capture</h2>
               <p class="feature-meta">Paste the page source, extract audio tags, transcribe individual clips or the whole set, then store the generated JSON on the backend.</p>
+              <p class="feature-aside">Best when you are starting a fresh test page or importing the sample raw HTML.</p>
             </div>
             <div class="row">
               <button type="button" onclick="navigate('current')">Open current run</button>
@@ -438,11 +71,12 @@
             </div>
           </article>
 
-          <article class="card feature-card">
+          <article class="card feature-card feature-card-secondary">
             <div>
               <span class="eyebrow">History</span>
               <h2>Browse previous generated JSON files</h2>
               <p class="feature-meta">Review saved transcriptions from prior executions and compare them with the example dataset in `resources`.</p>
+              <p class="feature-aside">Use this view as a study archive to reopen past runs and compare transcript outputs.</p>
             </div>
             <div class="row">
               <button type="button" onclick="openRunsView()">Open saved JSONs</button>
@@ -560,15 +194,34 @@
   </div>
 
   <script>
-    const defaultBackendUrl = window.location.protocol === 'file:'
-      ? 'http://localhost:3000'
-      : window.location.origin;
+    function normalizeBackendUrl(value) {
+      return String(value || '').trim().replace(/\/$/, '');
+    }
+
+    function getConfiguredDefaultBackendUrl() {
+      const metaBackendUrl = document.querySelector('meta[name="default-backend-url"]')?.content;
+      const systemBackendUrl = window.APP_CONFIG?.backendUrl || window.__APP_CONFIG__?.backendUrl;
+      const queryBackendUrl = new URLSearchParams(window.location.search).get('backendUrl');
+      const storedBackendUrl = window.localStorage.getItem('preptcf-backend-url');
+
+      if (queryBackendUrl) return normalizeBackendUrl(queryBackendUrl);
+      if (storedBackendUrl) return normalizeBackendUrl(storedBackendUrl);
+      if (systemBackendUrl) return normalizeBackendUrl(systemBackendUrl);
+      if (metaBackendUrl) return normalizeBackendUrl(metaBackendUrl);
+
+      return window.location.protocol === 'file:'
+        ? 'http://localhost:3000'
+        : normalizeBackendUrl(`${window.location.origin}/transcriber/`);
+    }
+
+    const defaultBackendUrl = getConfiguredDefaultBackendUrl();
 
     const state = {
       currentView: 'home',
       currentItems: [],
       runs: [],
       selectedRunId: '',
+      selectedRun: null,
       examples: {
         rawExamples: [],
         jsonExamples: []
@@ -589,6 +242,10 @@
 
     function getBackendBase() {
       return el('backendUrl').value.trim().replace(/\/$/, '');
+    }
+
+    function persistBackendBase() {
+      window.localStorage.setItem('preptcf-backend-url', getBackendBase());
     }
 
     function parseAudioUrls(raw) {
@@ -623,10 +280,17 @@
       node.innerHTML = html;
     }
 
+    function setTopStatus(text, tone = 'warn') {
+      el('topBackendStatusText').textContent = text;
+      el('topStatusDot').className = `status-dot ${tone}`;
+      el('topBackendBadge').className = `pill ${tone}`;
+    }
+
     function updateMetrics() {
       el('audioCountMetric').textContent = String(state.currentItems.length);
       el('extractCountPill').textContent = `${state.currentItems.length} audios`;
       el('runCountMetric').textContent = String(state.runs.length);
+      el('sampleCountMetric').textContent = String(state.examples.rawExamples.length);
     }
 
     function navigate(view) {
@@ -637,8 +301,13 @@
         node.classList.add('secondary');
       });
       el(`view-${view}`).classList.add('active');
-      el(`nav-${view}`).classList.add('active');
-      el(`nav-${view}`).classList.remove('secondary');
+      if (view === 'home') {
+        document.querySelector('.app-nav').style.display = 'none';
+      } else {
+        document.querySelector('.app-nav').style.display = '';
+        el(`nav-${view}`).classList.add('active');
+        el(`nav-${view}`).classList.remove('secondary');
+      }
     }
 
     function renderAudioList() {
@@ -693,7 +362,7 @@
           </div>
           <div class="row" style="margin-top: 12px;">
             <button type="button" onclick="loadRunDetail('${escapeHtml(run.id)}')">Open</button>
-            <button type="button" class="secondary" onclick="importRunToCurrent('${escapeHtml(run.id)}')">Load into current run</button>
+            ${run.source === 'generated' ? `<button type="button" class="secondary" onclick="promptRenameRun('${escapeHtml(run.id)}')">Rename</button>` : ''}
           </div>
         </article>
       `).join('');
@@ -719,7 +388,7 @@
               <span class="pill">${escapeHtml(run.createdAt ? new Date(run.createdAt).toLocaleString() : 'Unknown date')}</span>
             </div>
           </div>
-          <button type="button" class="secondary" onclick="importSelectedRun()">Use in current run</button>
+          ${run.source === 'generated' ? `<button type="button" class="secondary" onclick="promptRenameSelectedRun()">Rename stored file</button>` : ''}
         </div>
         <div class="audio-list">
           ${items.map((item, index) => `
@@ -740,7 +409,7 @@
     async function checkBackend() {
       const base = getBackendBase();
       setStatus('backendStatus', 'Checking backend...', 'warn');
-      setStatus('globalBackendStatus', 'Checking backend...', 'warn');
+      setTopStatus('Checking backend...', 'warn');
 
       try {
         const res = await axios.get(`${base}/health`, { timeout: 8000 });
@@ -748,11 +417,11 @@
         const tone = res.data.apiKeyConfigured ? 'ok' : 'warn';
         const message = `${res.data.message} ${apiKeyStatus}.`;
         setStatus('backendStatus', message, tone);
-        setStatus('globalBackendStatus', message, tone);
+        setTopStatus(message, tone);
       } catch (error) {
         const message = `Backend check failed: ${error.message}`;
         setStatus('backendStatus', message, 'error');
-        setStatus('globalBackendStatus', message, 'error');
+        setTopStatus(message, 'error');
       }
     }
 
@@ -917,36 +586,43 @@
       try {
         const res = await axios.get(`${getBackendBase()}/api/runs/${encodeURIComponent(id)}`, { timeout: 10000 });
         state.selectedRunId = id;
-        renderRunDetail(res.data);
+        state.selectedRun = res.data;
+        renderRunDetail(state.selectedRun);
       } catch (error) {
+        state.selectedRun = null;
         el('runDetail').innerHTML = `<div class="detail-empty">Failed to load run: ${escapeHtml(error.message)}</div>`;
       }
     }
 
-    async function importRunToCurrent(id) {
-      await loadRunDetail(id);
-      await importSelectedRun();
+    async function renameRun(id, nextName) {
+      if (!id || !nextName) return;
+      try {
+        await axios.patch(`${getBackendBase()}/api/runs/${encodeURIComponent(id)}`, {
+          name: nextName
+        }, { timeout: 10000 });
+        await refreshRuns();
+        if (state.selectedRunId === id) {
+          await loadRunDetail(id);
+        }
+      } catch (error) {
+        const message = error?.response?.data?.error || error.message;
+        el('runDetail').innerHTML = `<div class="detail-empty">Failed to rename run: ${escapeHtml(message)}</div>`;
+      }
     }
 
-    async function importSelectedRun() {
-      if (!state.selectedRunId) return;
-      try {
-        const res = await axios.get(`${getBackendBase()}/api/runs/${encodeURIComponent(state.selectedRunId)}`, { timeout: 10000 });
-        const run = res.data;
-        state.currentItems = Array.isArray(run.items) ? run.items.map((item, index) => ({
-          title: item.title || inferTitle(item.url || '', index),
-          url: item.url || '',
-          transcript: item.transcript || '',
-          status: item.status || 'Stored',
-          error: item.error || ''
-        })) : [];
-        el('runName').value = run.name || '';
-        setStatus('extractStatus', `Loaded ${state.currentItems.length} audio item(s) from ${run.name || run.id}.`, 'ok');
-        navigate('current');
-        renderAudioList();
-      } catch (error) {
-        setStatus('extractStatus', `Failed to import run: ${error.message}`, 'error');
-      }
+    function promptRenameRun(id) {
+      const run = state.runs.find((entry) => entry.id === id);
+      if (!run || run.source !== 'generated') return;
+      const nextName = window.prompt('Rename stored run', run.name || '');
+      if (!nextName || nextName.trim() === run.name) return;
+      renameRun(id, nextName.trim());
+    }
+
+    function promptRenameSelectedRun() {
+      if (!state.selectedRun || state.selectedRun.source !== 'generated') return;
+      const nextName = window.prompt('Rename stored run', state.selectedRun.name || '');
+      if (!nextName || nextName.trim() === state.selectedRun.name) return;
+      renameRun(state.selectedRunId, nextName.trim());
     }
 
     function openRunsView() {
@@ -965,23 +641,27 @@
       renderAudioList();
     });
     el('healthBtn').addEventListener('click', checkBackend);
+    el('refreshStatusBtn').addEventListener('click', checkBackend);
     el('transcribeAllBtn').addEventListener('click', transcribeAll);
     el('saveRunBtn').addEventListener('click', saveCurrentRun);
     el('exportBtn').addEventListener('click', exportJson);
+    el('backendUrl').addEventListener('change', persistBackendBase);
+    el('backendUrl').addEventListener('blur', persistBackendBase);
 
     window.navigate = navigate;
     window.transcribeOne = transcribeOne;
     window.copyTranscript = copyTranscript;
     window.refreshRuns = refreshRuns;
     window.loadRunDetail = loadRunDetail;
-    window.importRunToCurrent = importRunToCurrent;
-    window.importSelectedRun = importSelectedRun;
     window.openRunsView = openRunsView;
     window.loadFirstRawExample = loadFirstRawExample;
+    window.promptRenameRun = promptRenameRun;
+    window.promptRenameSelectedRun = promptRenameSelectedRun;
 
     renderAudioList();
     renderRuns();
     renderRunDetail(null);
+    navigate('home');
     checkBackend();
     refreshExamples();
     refreshRuns();

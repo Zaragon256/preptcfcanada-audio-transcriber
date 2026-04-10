@@ -6,6 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY server.js index.html README.md ./
+COPY styles ./styles
 COPY resources ./resources
 
 RUN mkdir -p /app/data/runs
