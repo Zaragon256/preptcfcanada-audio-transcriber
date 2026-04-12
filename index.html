@@ -21,7 +21,12 @@
           </div>
         </div>
       </div>
-      <button id="refreshStatusBtn" type="button" class="icon-btn" title="Refresh server status" aria-label="Refresh server status">&#x21bb;</button>
+      <div class="top-status-actions">
+        <span class="pill">Saved <strong id="topTranscriptCount">0</strong></span>
+        <span class="pill">Examples <strong id="topExampleCount">0</strong></span>
+        <button id="openSettingsBtn" type="button" class="icon-btn" title="Open settings" aria-label="Open settings">&#9881;</button>
+        <button id="refreshStatusBtn" type="button" class="icon-btn" title="Refresh server status" aria-label="Refresh server status">&#x21bb;</button>
+      </div>
     </div>
 
     <section class="hero hero-home">
@@ -29,60 +34,42 @@
         <span class="eyebrow">Prep TCF Canada</span>
         <h1>Audio extraction and transcription workspace</h1>
         <p class="hero-copy">
-          Start a fresh run from raw page HTML, inspect previous JSON outputs, and verify that the local backend is reachable before you send audio for transcription.
+          Start from your saved transcripts, inspect previous study files, and only create a new transcript when you need to process fresh raw HTML.
         </p>
       </div>
     </section>
 
     <nav class="app-nav">
-      <button id="nav-home" class="nav-btn active" type="button" onclick="navigate('home')">Home</button>
-      <button id="nav-current" class="nav-btn secondary" type="button" onclick="navigate('current')">Current run</button>
-      <button id="nav-runs" class="nav-btn secondary" type="button" onclick="navigate('runs')">Saved JSONs</button>
+      <button id="nav-home" class="nav-btn active" type="button" onclick="navigate('home')">Saved transcripts</button>
+      <button id="nav-current" class="nav-btn secondary" type="button" onclick="navigate('current')">New transcript</button>
     </nav>
 
     <main>
       <section id="view-home" class="view active">
-        <div class="home-stats">
-          <article class="mini-stat">
-            <div class="small">Saved runs</div>
-            <div class="mini-stat-row"><strong id="runCountMetric">0</strong><span class="small">JSON files available</span></div>
-          </article>
-          <article class="mini-stat">
-            <div class="small">Current workspace</div>
-            <div class="mini-stat-row"><strong id="audioCountMetric">0</strong><span class="small">audios extracted</span></div>
-          </article>
-          <article class="mini-stat">
-            <div class="small">Sample data</div>
-            <div class="mini-stat-row"><strong id="sampleCountMetric">0</strong><span class="small">raw example(s) ready</span></div>
-          </article>
-        </div>
+        <div class="grid two">
+          <section class="card">
+            <div class="section-head">
+              <div>
+                <h2>Saved transcripts</h2>
+                <p class="small">Start here. Review, rename, or delete stored transcripts, then create a new one only when needed.</p>
+              </div>
+              <div class="row row-actions">
+                <button type="button" onclick="navigate('current')">Create new transcript</button>
+                <button type="button" class="secondary" onclick="refreshRuns()">Refresh list</button>
+              </div>
+            </div>
+            <div id="runsList" class="runs-list"></div>
+          </section>
 
-        <div class="grid home">
-          <article class="card feature-card feature-card-primary">
-            <div>
-              <span class="eyebrow">Start here</span>
-              <h2>Process a new raw HTML capture</h2>
-              <p class="feature-meta">Paste the page source, extract audio tags, transcribe individual clips or the whole set, then store the generated JSON on the backend.</p>
-              <p class="feature-aside">Best when you are starting a fresh test page or importing the sample raw HTML.</p>
+          <section class="card">
+            <div class="section-head">
+              <div>
+                <h2>Transcript detail</h2>
+                <p class="small">Open a stored transcript to inspect its audio list, transcript text, and file metadata.</p>
+              </div>
             </div>
-            <div class="row">
-              <button type="button" onclick="navigate('current')">Open current run</button>
-              <button type="button" class="ghost" onclick="loadFirstRawExample()">Load sample raw HTML</button>
-            </div>
-          </article>
-
-          <article class="card feature-card feature-card-secondary">
-            <div>
-              <span class="eyebrow">History</span>
-              <h2>Browse previous generated JSON files</h2>
-              <p class="feature-meta">Review saved transcriptions from prior executions and compare them with the example dataset in `resources`.</p>
-              <p class="feature-aside">Use this view as a study archive to reopen past runs and compare transcript outputs.</p>
-            </div>
-            <div class="row">
-              <button type="button" onclick="openRunsView()">Open saved JSONs</button>
-              <button type="button" class="ghost" onclick="refreshRuns()">Refresh list</button>
-            </div>
-          </article>
+            <div id="runDetail"></div>
+          </section>
         </div>
       </section>
 
@@ -91,74 +78,93 @@
           <section class="card">
             <div class="section-head">
               <div>
-                <h2>Current run</h2>
-                <p class="small">Paste raw HTML, extract audio URLs, then transcribe and save the resulting JSON.</p>
+                <h2>New transcript</h2>
+                <p class="small">Paste raw HTML, extract audio URLs, transcribe the clips, then save the transcript to your library.</p>
               </div>
               <span class="pill" id="extractCountPill">0 audios</span>
             </div>
 
-            <div class="row">
-              <div>
-                <label for="runName">Run name</label>
-                <input id="runName" placeholder="Comprension oral test 6" />
+            <div class="step-block step-block-source">
+              <div class="step-head">
+                <span class="step-number">1</span>
+                <div>
+                  <h3>Choose a source</h3>
+                  <p class="small">Load a sample first or paste fresh raw HTML below.</p>
+                </div>
               </div>
               <div>
-                <label for="exampleSelect">Example raw HTML</label>
-                <select id="exampleSelect">
-                  <option value="">Select a sample...</option>
-                </select>
+                <label for="runName">Transcript name</label>
+                <input id="runName" placeholder="Comprension oral test 6" />
+              </div>
+              <div class="row" style="margin-top: 12px;">
+                <div>
+                  <label for="exampleSelect">Example raw HTML</label>
+                  <select id="exampleSelect">
+                    <option value="">Select a sample...</option>
+                  </select>
+                </div>
+                <div class="step-inline-actions">
+                  <button type="button" id="loadExampleBtn">Load sample</button>
+                  <button type="button" id="clearBtn" class="secondary">Clear</button>
+                </div>
               </div>
             </div>
 
-            <div class="row" style="margin-top: 12px;">
-              <button type="button" id="loadExampleBtn">Load sample</button>
-              <button type="button" id="extractBtn" class="secondary">Extract audio URLs</button>
-              <button type="button" id="clearBtn" class="secondary">Clear</button>
+            <div class="step-block step-block-paste">
+              <div class="step-head">
+                <span class="step-number">2</span>
+                <div>
+                  <h3>Paste raw HTML</h3>
+                  <p class="small">Paste the recovered TCF page HTML, then extract the audio URLs.</p>
+                </div>
+              </div>
+              <div>
+                <label for="rawHtml">Raw HTML</label>
+                <textarea id="rawHtml" placeholder="Paste the raw HTML of the TCF page here..."></textarea>
+              </div>
+              <div class="row row-actions" style="margin-top: 12px;">
+                <button type="button" id="extractBtn" class="secondary">Extract audio URLs</button>
+              </div>
+            </div>
+
+            <div class="step-block step-block-transcribe">
+              <div class="step-head">
+                <span class="step-number">3</span>
+                <div>
+                  <h3>Transcribe extracted audios</h3>
+                  <p class="small">After extraction, process the full set to build the transcript.</p>
+                </div>
+              </div>
+              <div class="row row-actions">
+                <button type="button" id="transcribeAllBtn" class="secondary">Transcribe all</button>
+              </div>
+            </div>
+
+            <div class="step-block step-block-save">
+              <div class="step-head">
+                <span class="step-number">4</span>
+                <div>
+                  <h3>Store or export</h3>
+                  <p class="small">Save the transcript into your library, or export the JSON beside it.</p>
+                </div>
+              </div>
+              <div class="row row-actions">
+                <button type="button" id="saveRunBtn" class="secondary">Save transcript</button>
+                <button type="button" id="exportBtn" class="secondary">Export JSON</button>
+                <button type="button" id="healthBtn" class="secondary">Check backend</button>
+              </div>
             </div>
 
             <div class="status-line" id="extractStatus">No audio extracted yet.</div>
-
-            <div style="margin-top: 14px;">
-              <label for="rawHtml">Raw HTML</label>
-              <textarea id="rawHtml" placeholder="Paste the raw HTML of the TCF page here..."></textarea>
-            </div>
-
-            <h3 style="margin-top: 22px;">Backend and transcription settings</h3>
-            <div class="row">
-              <div>
-                <label for="backendUrl">Backend URL</label>
-                <input id="backendUrl" />
-              </div>
-              <div>
-                <label for="model">Model</label>
-                <select id="model">
-                  <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
-                  <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
-                  <option value="whisper-1">whisper-1</option>
-                </select>
-              </div>
-              <div>
-                <label for="language">Language hint</label>
-                <input id="language" value="fr" placeholder="fr, en, es..." />
-              </div>
-            </div>
-
-            <div class="row" style="margin-top: 12px;">
-              <button type="button" id="healthBtn" class="secondary">Check backend</button>
-              <button type="button" id="transcribeAllBtn">Transcribe all</button>
-              <button type="button" id="saveRunBtn">Save JSON to backend</button>
-              <button type="button" id="exportBtn" class="secondary">Export JSON</button>
-            </div>
-
             <div class="status-line" id="backendStatus">Backend not checked yet.</div>
-            <div class="status-line" id="saveStatus">No saved run yet.</div>
+            <div class="status-line" id="saveStatus">No saved transcript yet.</div>
           </section>
 
           <section class="card">
             <div class="section-head">
               <div>
                 <h2>Extracted audios</h2>
-                <p class="small">Each extracted audio can be previewed, transcribed, copied, and then included in the saved run JSON.</p>
+                <p class="small">Each extracted audio can be previewed, transcribed, copied, and then included in the saved transcript file.</p>
               </div>
             </div>
             <div id="audioList" class="audio-list"></div>
@@ -166,31 +172,44 @@
         </div>
       </section>
 
-      <section id="view-runs" class="view">
-        <div class="grid two">
-          <section class="card">
-            <div class="section-head">
-              <div>
-                <h2>Saved JSONs</h2>
-                <p class="small">Generated runs plus example JSON files from `resources`.</p>
-              </div>
-              <button type="button" class="secondary" onclick="refreshRuns()">Refresh</button>
-            </div>
-            <div id="runsList" class="runs-list"></div>
-          </section>
-
-          <section class="card">
-            <div class="section-head">
-              <div>
-                <h2>Run detail</h2>
-                <p class="small">Inspect the contents of a selected JSON file.</p>
-              </div>
-            </div>
-            <div id="runDetail"></div>
-          </section>
-        </div>
-      </section>
     </main>
+  </div>
+
+  <div id="settingsModal" class="modal-shell" hidden>
+    <div class="modal-backdrop" onclick="closeSettingsModal()"></div>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="section-head">
+        <div>
+          <h2 id="settingsTitle">Settings</h2>
+          <p class="small">These values change rarely, so they stay out of the main transcript workflow.</p>
+        </div>
+        <button type="button" class="icon-btn" onclick="closeSettingsModal()" aria-label="Close settings">&times;</button>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="backendUrl">Backend URL</label>
+          <input id="backendUrl" />
+        </div>
+        <div>
+          <label for="model">Model</label>
+          <select id="model">
+            <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
+            <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
+            <option value="whisper-1">whisper-1</option>
+          </select>
+        </div>
+        <div>
+          <label for="language">Language hint</label>
+          <input id="language" value="fr" placeholder="fr, en, es..." />
+        </div>
+      </div>
+
+      <div class="row row-actions" style="margin-top: 16px;">
+        <button type="button" onclick="checkBackend()">Check backend</button>
+        <button type="button" class="secondary" onclick="closeSettingsModal()">Done</button>
+      </div>
+    </section>
   </div>
 
   <script>
@@ -222,6 +241,8 @@
       runs: [],
       selectedRunId: '',
       selectedRun: null,
+      translationVisibility: {},
+      translationLoading: {},
       examples: {
         rawExamples: [],
         jsonExamples: []
@@ -286,11 +307,56 @@
       el('topBackendBadge').className = `pill ${tone}`;
     }
 
+    function getWorkflowStep() {
+      const hasRawHtml = Boolean(el('rawHtml').value.trim());
+      const hasItems = state.currentItems.length > 0;
+      const hasTranscript = state.currentItems.some((item) => item.transcript);
+
+      if (!hasRawHtml && !hasItems) return 'source';
+      if (hasRawHtml && !hasItems) return 'extract';
+      if (hasItems && !hasTranscript) return 'transcribe';
+      return 'save';
+    }
+
+    function updateWorkflowUI() {
+      const step = getWorkflowStep();
+      document.querySelectorAll('.step-block').forEach((node) => node.classList.remove('is-active-step'));
+      ['extractBtn', 'transcribeAllBtn', 'saveRunBtn'].forEach((id) => {
+        el(id).classList.remove('is-next-action');
+        el(id).classList.add('secondary');
+      });
+
+      if (step === 'source' || step === 'extract') {
+        document.querySelector('.step-block-paste').classList.add('is-active-step');
+        el('extractBtn').classList.add('is-next-action');
+        el('extractBtn').classList.remove('secondary');
+      } else if (step === 'transcribe') {
+        document.querySelector('.step-block-transcribe').classList.add('is-active-step');
+        el('transcribeAllBtn').classList.add('is-next-action');
+        el('transcribeAllBtn').classList.remove('secondary');
+      } else {
+        document.querySelector('.step-block-save').classList.add('is-active-step');
+        el('saveRunBtn').classList.add('is-next-action');
+        el('saveRunBtn').classList.remove('secondary');
+      }
+    }
+
+    function openSettingsModal() {
+      el('settingsModal').hidden = false;
+      document.body.classList.add('modal-open');
+    }
+
+    function closeSettingsModal() {
+      el('settingsModal').hidden = true;
+      document.body.classList.remove('modal-open');
+    }
+
     function updateMetrics() {
-      el('audioCountMetric').textContent = String(state.currentItems.length);
+      const savedTranscriptCount = state.runs.filter((entry) => entry.source === 'generated').length;
       el('extractCountPill').textContent = `${state.currentItems.length} audios`;
-      el('runCountMetric').textContent = String(state.runs.length);
-      el('sampleCountMetric').textContent = String(state.examples.rawExamples.length);
+      el('topTranscriptCount').textContent = String(savedTranscriptCount);
+      el('topExampleCount').textContent = String(state.examples.rawExamples.length);
+      updateWorkflowUI();
     }
 
     function navigate(view) {
@@ -301,13 +367,8 @@
         node.classList.add('secondary');
       });
       el(`view-${view}`).classList.add('active');
-      if (view === 'home') {
-        document.querySelector('.app-nav').style.display = 'none';
-      } else {
-        document.querySelector('.app-nav').style.display = '';
-        el(`nav-${view}`).classList.add('active');
-        el(`nav-${view}`).classList.remove('secondary');
-      }
+      el(`nav-${view}`).classList.add('active');
+      el(`nav-${view}`).classList.remove('secondary');
     }
 
     function renderAudioList() {
@@ -316,6 +377,7 @@
 
       if (!state.currentItems.length) {
         list.innerHTML = '<div class="detail-empty">No audios extracted yet.</div>';
+        updateWorkflowUI();
         return;
       }
 
@@ -363,16 +425,18 @@
           <div class="row" style="margin-top: 12px;">
             <button type="button" onclick="loadRunDetail('${escapeHtml(run.id)}')">Open</button>
             ${run.source === 'generated' ? `<button type="button" class="secondary" onclick="promptRenameRun('${escapeHtml(run.id)}')">Rename</button>` : ''}
+            ${run.source === 'generated' ? `<button type="button" class="secondary" onclick="confirmDeleteRun('${escapeHtml(run.id)}')">Delete</button>` : ''}
           </div>
         </article>
       `).join('');
+      updateWorkflowUI();
     }
 
     function renderRunDetail(run) {
       const panel = el('runDetail');
 
       if (!run) {
-        panel.innerHTML = '<div class="detail-empty">Select a run to inspect its JSON contents.</div>';
+        panel.innerHTML = '<div class="detail-empty">Select a transcript to inspect its contents.</div>';
         return;
       }
 
@@ -388,7 +452,7 @@
               <span class="pill">${escapeHtml(run.createdAt ? new Date(run.createdAt).toLocaleString() : 'Unknown date')}</span>
             </div>
           </div>
-          ${run.source === 'generated' ? `<button type="button" class="secondary" onclick="promptRenameSelectedRun()">Rename stored file</button>` : ''}
+          ${run.source === 'generated' ? `<div class="row row-actions"><button type="button" class="secondary" onclick="promptRenameSelectedRun()">Rename</button><button type="button" class="secondary" onclick="confirmDeleteSelectedRun()">Delete</button></div>` : ''}
         </div>
         <div class="audio-list">
           ${items.map((item, index) => `
@@ -400,10 +464,49 @@
                 <span class="inline-status">${escapeHtml(item.status || 'Stored')}</span>
               </div>
               <div class="transcript">${escapeHtml(item.transcript || item.error || 'No transcript stored.')}</div>
+              ${run.source === 'generated' && item.transcript ? `
+                <div class="translation-actions">
+                  <button
+                    type="button"
+                    class="secondary"
+                    onclick="toggleSpanishTranslation(${index})"
+                    ${state.translationLoading[index] ? 'disabled' : ''}
+                  >
+                    ${state.translationLoading[index]
+                      ? 'Translating...'
+                      : state.translationVisibility[index]
+                        ? 'Hide Spanish'
+                        : item.translations?.es?.text
+                          ? 'Show Spanish'
+                          : 'Translate to Spanish'}
+                  </button>
+                </div>
+              ` : ''}
+              ${state.translationVisibility[index] && item.translations?.es?.text ? `
+                <div class="translation-block">
+                  <div class="translation-label">Spanish</div>
+                  <div class="transcript transcript-translation">${escapeHtml(item.translations.es.text)}</div>
+                </div>
+              ` : ''}
             </article>
           `).join('')}
         </div>
       `;
+    }
+
+    function renderRunDetailPreserveScroll(run) {
+      const scrollY = window.scrollY;
+      const detailPanel = el('runDetail');
+      const audioList = detailPanel.querySelector('.audio-list');
+      const audioListScrollTop = audioList ? audioList.scrollTop : 0;
+      renderRunDetail(run);
+      window.requestAnimationFrame(() => {
+        const nextAudioList = detailPanel.querySelector('.audio-list');
+        if (nextAudioList) {
+          nextAudioList.scrollTop = audioListScrollTop;
+        }
+        window.scrollTo({ top: scrollY, behavior: 'auto' });
+      });
     }
 
     async function checkBackend() {
@@ -445,6 +548,7 @@
         }
         navigate('current');
         setStatus('extractStatus', `Loaded sample raw HTML: ${name}`, 'ok');
+        updateWorkflowUI();
       } catch (error) {
         setStatus('extractStatus', `Failed to load sample: ${error.message}`, 'error');
       }
@@ -523,7 +627,7 @@
 
     function buildRunPayload() {
       return {
-        name: el('runName').value.trim() || 'Transcription run',
+        name: el('runName').value.trim() || 'New transcript',
         sourceHtmlName: el('exampleSelect').value || null,
         metadata: {
           model: el('model').value,
@@ -542,20 +646,36 @@
 
     async function saveCurrentRun() {
       if (!state.currentItems.length) {
-        setStatus('saveStatus', 'Extract audio items before saving a run.', 'warn');
+        setStatus('saveStatus', 'Extract audio items before saving a transcript.', 'warn');
         return;
       }
 
-      setStatus('saveStatus', 'Saving run...', 'warn');
+      const transcriptName = el('runName').value.trim();
+      const conflictingRun = state.runs.find((entry) => {
+        return entry.name.trim().toLowerCase() === transcriptName.toLowerCase();
+      });
+
+      if (transcriptName && conflictingRun) {
+        setStatus('saveStatus', `A saved transcript named "${transcriptName}" already exists. Rename it or open the existing file instead.`, 'warn');
+        navigate('home');
+        loadRunDetail(conflictingRun.id);
+        return;
+      }
+
+      setStatus('saveStatus', 'Saving transcript...', 'warn');
 
       try {
         const res = await axios.post(`${getBackendBase()}/api/runs`, buildRunPayload(), { timeout: 15000 });
-        const name = res.data?.run?.name || 'Run saved';
-        setStatus('saveStatus', `Saved run: ${name}`, 'ok');
+        const name = res.data?.run?.name || 'Transcript saved';
+        setStatus('saveStatus', `Saved transcript: ${name}`, 'ok');
         await refreshRuns();
+        navigate('home');
+        if (res.data?.run?.id) {
+          await loadRunDetail(res.data.run.id);
+        }
       } catch (error) {
         const message = error?.response?.data?.error || error.message;
-        setStatus('saveStatus', `Failed to save run: ${message}`, 'error');
+        setStatus('saveStatus', `Failed to save transcript: ${message}`, 'error');
       }
     }
 
@@ -577,7 +697,7 @@
         renderRuns();
         updateMetrics();
       } catch (error) {
-        el('runsList').innerHTML = `<div class="detail-empty">Failed to load runs: ${escapeHtml(error.message)}</div>`;
+        el('runsList').innerHTML = `<div class="detail-empty">Failed to load transcripts: ${escapeHtml(error.message)}</div>`;
         updateMetrics();
       }
     }
@@ -587,10 +707,28 @@
         const res = await axios.get(`${getBackendBase()}/api/runs/${encodeURIComponent(id)}`, { timeout: 10000 });
         state.selectedRunId = id;
         state.selectedRun = res.data;
+        state.translationVisibility = {};
+        state.translationLoading = {};
         renderRunDetail(state.selectedRun);
       } catch (error) {
         state.selectedRun = null;
-        el('runDetail').innerHTML = `<div class="detail-empty">Failed to load run: ${escapeHtml(error.message)}</div>`;
+        el('runDetail').innerHTML = `<div class="detail-empty">Failed to load transcript: ${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    async function deleteRun(id) {
+      if (!id) return;
+      try {
+        await axios.delete(`${getBackendBase()}/api/runs/${encodeURIComponent(id)}`, { timeout: 10000 });
+        if (state.selectedRunId === id) {
+          state.selectedRunId = '';
+          state.selectedRun = null;
+          renderRunDetail(null);
+        }
+        await refreshRuns();
+      } catch (error) {
+        const message = error?.response?.data?.error || error.message;
+        el('runDetail').innerHTML = `<div class="detail-empty">Failed to delete transcript: ${escapeHtml(message)}</div>`;
       }
     }
 
@@ -606,27 +744,82 @@
         }
       } catch (error) {
         const message = error?.response?.data?.error || error.message;
-        el('runDetail').innerHTML = `<div class="detail-empty">Failed to rename run: ${escapeHtml(message)}</div>`;
+        el('runDetail').innerHTML = `<div class="detail-empty">Failed to rename transcript: ${escapeHtml(message)}</div>`;
       }
     }
 
     function promptRenameRun(id) {
       const run = state.runs.find((entry) => entry.id === id);
       if (!run || run.source !== 'generated') return;
-      const nextName = window.prompt('Rename stored run', run.name || '');
+      const nextName = window.prompt('Rename stored transcript', run.name || '');
       if (!nextName || nextName.trim() === run.name) return;
       renameRun(id, nextName.trim());
     }
 
     function promptRenameSelectedRun() {
       if (!state.selectedRun || state.selectedRun.source !== 'generated') return;
-      const nextName = window.prompt('Rename stored run', state.selectedRun.name || '');
+      const nextName = window.prompt('Rename stored transcript', state.selectedRun.name || '');
       if (!nextName || nextName.trim() === state.selectedRun.name) return;
       renameRun(state.selectedRunId, nextName.trim());
     }
 
+    function confirmDeleteRun(id) {
+      const run = state.runs.find((entry) => entry.id === id);
+      if (!run || run.source !== 'generated') return;
+      const confirmed = window.confirm(`Delete saved transcript "${run.name}"? This cannot be undone.`);
+      if (!confirmed) return;
+      deleteRun(id);
+    }
+
+    function confirmDeleteSelectedRun() {
+      if (!state.selectedRun || state.selectedRun.source !== 'generated') return;
+      const confirmed = window.confirm(`Delete saved transcript "${state.selectedRun.name}"? This cannot be undone.`);
+      if (!confirmed) return;
+      deleteRun(state.selectedRunId);
+    }
+
+    async function toggleSpanishTranslation(index) {
+      if (!state.selectedRun || state.selectedRun.source !== 'generated') return;
+      const item = state.selectedRun.items?.[index];
+      if (!item?.transcript) return;
+
+      if (state.translationVisibility[index]) {
+        delete state.translationVisibility[index];
+        renderRunDetailPreserveScroll(state.selectedRun);
+        return;
+      }
+
+      if (item.translations?.es?.text) {
+        state.translationVisibility[index] = true;
+        renderRunDetailPreserveScroll(state.selectedRun);
+        return;
+      }
+
+      state.translationLoading[index] = true;
+      renderRunDetailPreserveScroll(state.selectedRun);
+
+      try {
+        const res = await axios.post(`${getBackendBase()}/api/runs/${encodeURIComponent(state.selectedRunId)}/items/${index}/translate`, {
+          language: 'Spanish',
+          languageCode: 'es'
+        }, { timeout: 30000 });
+
+        item.translations ||= {};
+        item.translations.es = res.data.translation;
+        state.translationVisibility[index] = true;
+      } catch (error) {
+        const message = error?.response?.data?.error || error.message;
+        el('runDetail').innerHTML = `<div class="detail-empty">Failed to translate transcript item: ${escapeHtml(message)}</div>`;
+        return;
+      } finally {
+        delete state.translationLoading[index];
+      }
+
+      renderRunDetailPreserveScroll(state.selectedRun);
+    }
+
     function openRunsView() {
-      navigate('runs');
+      navigate('home');
       refreshRuns();
     }
 
@@ -637,16 +830,18 @@
       el('runName').value = '';
       state.currentItems = [];
       setStatus('extractStatus', 'Workspace cleared.', 'warn');
-      setStatus('saveStatus', 'No saved run yet.', '');
+      setStatus('saveStatus', 'No saved transcript yet.', '');
       renderAudioList();
     });
     el('healthBtn').addEventListener('click', checkBackend);
+    el('openSettingsBtn').addEventListener('click', openSettingsModal);
     el('refreshStatusBtn').addEventListener('click', checkBackend);
     el('transcribeAllBtn').addEventListener('click', transcribeAll);
     el('saveRunBtn').addEventListener('click', saveCurrentRun);
     el('exportBtn').addEventListener('click', exportJson);
     el('backendUrl').addEventListener('change', persistBackendBase);
     el('backendUrl').addEventListener('blur', persistBackendBase);
+    el('rawHtml').addEventListener('input', updateWorkflowUI);
 
     window.navigate = navigate;
     window.transcribeOne = transcribeOne;
@@ -657,6 +852,10 @@
     window.loadFirstRawExample = loadFirstRawExample;
     window.promptRenameRun = promptRenameRun;
     window.promptRenameSelectedRun = promptRenameSelectedRun;
+    window.confirmDeleteRun = confirmDeleteRun;
+    window.confirmDeleteSelectedRun = confirmDeleteSelectedRun;
+    window.closeSettingsModal = closeSettingsModal;
+    window.toggleSpanishTranslation = toggleSpanishTranslation;
 
     renderAudioList();
     renderRuns();

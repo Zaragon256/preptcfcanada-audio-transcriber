@@ -113,6 +113,20 @@ function resolveStoredRun(fileName) {
   return null;
 }
 
+function collectRunSummaries() {
+  const generatedRuns = fs.readdirSync(runsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.json'))
+    .map((entry) => buildRunSummary(path.join(runsDir, entry.name), 'generated'));
+
+  const exampleRuns = fs.readdirSync(resourcesDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.json'))
+    .map((entry) => buildRunSummary(path.join(resourcesDir, entry.name), 'example'));
+
+  return [...generatedRuns, ...exampleRuns].sort((a, b) => {
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
+
 function resolveGeneratedRun(fileName) {
   const safeName = path.basename(fileName);
   const generatedPath = path.join(runsDir, safeName);
@@ -161,18 +175,7 @@ app.get('/api/examples/raw/:name', (req, res) => {
 
 app.get('/api/runs', (_req, res) => {
   try {
-    const generatedRuns = fs.readdirSync(runsDir, { withFileTypes: true })
-      .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.json'))
-      .map((entry) => buildRunSummary(path.join(runsDir, entry.name), 'generated'));
-
-    const exampleRuns = fs.readdirSync(resourcesDir, { withFileTypes: true })
-      .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.json'))
-      .map((entry) => buildRunSummary(path.join(resourcesDir, entry.name), 'example'));
-
-    const runs = [...generatedRuns, ...exampleRuns].sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
+    const runs = collectRunSummaries();
     res.json({ runs });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to list runs.' });
@@ -202,6 +205,17 @@ app.post('/api/runs', (req, res) => {
 
   const createdAt = new Date().toISOString();
   const runName = String(name || sourceHtmlName || 'transcription-run').trim();
+  const existingRun = collectRunSummaries().find((entry) => {
+    return entry.name.trim().toLowerCase() === runName.toLowerCase();
+  });
+
+  if (existingRun) {
+    return res.status(409).json({
+      error: `A saved transcript named "${runName}" already exists.`,
+      existing: existingRun
+    });
+  }
+
   const slug = safeSlug(runName);
   const fileName = `${createdAt.replace(/[:.]/g, '-')}-${slug}.json`;
   const filePath = path.join(runsDir, fileName);
@@ -244,6 +258,17 @@ app.patch('/api/runs/:fileName', (req, res) => {
       return res.status(400).json({ error: 'Example runs cannot be renamed.' });
     }
 
+    const conflictingRun = collectRunSummaries().find((entry) => {
+      return entry.id !== path.basename(filePath) && entry.name.trim().toLowerCase() === nextName.toLowerCase();
+    });
+
+    if (conflictingRun) {
+      return res.status(409).json({
+        error: `A saved transcript named "${nextName}" already exists.`,
+        existing: conflictingRun
+      });
+    }
+
     payload.name = nextName;
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -253,6 +278,107 @@ app.patch('/api/runs/:fileName', (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to rename run.' });
+  }
+});
+
+app.delete('/api/runs/:fileName', (req, res) => {
+  const filePath = resolveGeneratedRun(req.params.fileName || '');
+
+  if (!filePath) {
+    return res.status(404).json({ error: 'Generated transcript not found.' });
+  }
+
+  try {
+    fs.unlinkSync(filePath);
+    res.json({ ok: true, deleted: path.basename(filePath) });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to delete transcript.' });
+  }
+});
+
+app.post('/api/runs/:fileName/items/:index/translate', async (req, res) => {
+  const filePath = resolveGeneratedRun(req.params.fileName || '');
+  const itemIndex = Number.parseInt(req.params.index || '', 10);
+  const language = String(req.body?.language || 'Spanish').trim();
+  const languageCode = String(req.body?.languageCode || 'es').trim().toLowerCase();
+
+  if (!filePath) {
+    return res.status(404).json({ error: 'Generated transcript not found.' });
+  }
+
+  if (!Number.isInteger(itemIndex) || itemIndex < 0) {
+    return res.status(400).json({ error: 'A valid item index is required.' });
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({ error: 'OPENAI_API_KEY is missing in the server environment.' });
+  }
+
+  try {
+    const payload = readJsonFile(filePath);
+
+    if (Array.isArray(payload) || !Array.isArray(payload.items)) {
+      return res.status(400).json({ error: 'This transcript file cannot store translations.' });
+    }
+
+    const item = payload.items[itemIndex];
+
+    if (!item) {
+      return res.status(404).json({ error: 'Transcript item not found.' });
+    }
+
+    if (!String(item.transcript || '').trim()) {
+      return res.status(400).json({ error: 'Cannot translate an empty transcript.' });
+    }
+
+    item.translations ||= {};
+
+    if (item.translations[languageCode]?.text) {
+      return res.json({
+        ok: true,
+        reused: true,
+        translation: item.translations[languageCode]
+      });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.2,
+      messages: [
+        {
+          role: 'system',
+          content: `Translate French learning material into ${language}. Keep the original meaning and preserve answer labels such as A., B., C., and D. Return only the translated text.`
+        },
+        {
+          role: 'user',
+          content: item.transcript
+        }
+      ]
+    });
+
+    const translatedText = completion.choices?.[0]?.message?.content?.trim();
+
+    if (!translatedText) {
+      return res.status(500).json({ error: 'Translation returned no text.' });
+    }
+
+    item.translations[languageCode] = {
+      language,
+      languageCode,
+      text: translatedText,
+      createdAt: new Date().toISOString()
+    };
+
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+
+    res.json({
+      ok: true,
+      reused: false,
+      translation: item.translations[languageCode]
+    });
+  } catch (error) {
+    const details = error?.response?.data || error?.message || 'Unknown error';
+    res.status(500).json({ error: typeof details === 'string' ? details : JSON.stringify(details) });
   }
 });
 

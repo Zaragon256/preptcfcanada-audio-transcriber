@@ -52,6 +52,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 body::before {
   content: "";
   position: fixed;
@@ -92,6 +96,14 @@ body::before {
   align-items: center;
   gap: 10px;
   min-width: 0;
+}
+
+.top-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .status-dot {
@@ -523,6 +535,88 @@ label {
   min-width: 180px;
 }
 
+.row.row-actions {
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.step-block {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(245, 248, 252, 0.82));
+}
+
+.step-block.is-active-step {
+  border-color: rgba(88, 188, 216, 0.30);
+  box-shadow: 0 0 0 4px rgba(88, 188, 216, 0.10);
+}
+
+.step-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(120, 166, 255, 0.14);
+  color: var(--info);
+  font-size: 13px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.step-inline-actions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.is-next-action {
+  background: linear-gradient(135deg, var(--mint), var(--sky));
+  color: #fffafe;
+  box-shadow: 0 10px 24px rgba(87, 209, 239, 0.24);
+}
+
+.modal-shell[hidden] {
+  display: none;
+}
+
+.modal-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 26, 38, 0.36);
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  position: relative;
+  z-index: 1;
+  max-width: 860px;
+  margin: 8vh auto 0;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 253, 0.96);
+  box-shadow: var(--shadow-lift);
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;
@@ -618,6 +712,28 @@ label {
   background: rgba(255, 255, 253, 0.94);
   font-size: 15px;
   line-height: 1.65;
+}
+
+.translation-actions {
+  margin-top: 10px;
+}
+
+.translation-block {
+  margin-top: 12px;
+}
+
+.translation-label {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--info);
+}
+
+.transcript-translation {
+  background: linear-gradient(180deg, rgba(120, 166, 255, 0.08), rgba(88, 188, 216, 0.06));
+  border-style: solid;
 }
 
 audio {
