@@ -480,6 +480,16 @@
                           ? 'Show Spanish'
                           : 'Translate to Spanish'}
                   </button>
+                  ${item.translations?.es?.text ? `
+                    <button
+                      type="button"
+                      class="secondary"
+                      onclick="refreshSpanishTranslation(${index})"
+                      ${state.translationLoading[index] ? 'disabled' : ''}
+                    >
+                      Refresh Spanish
+                    </button>
+                  ` : ''}
                 </div>
               ` : ''}
               ${state.translationVisibility[index] && item.translations?.es?.text ? `
@@ -818,6 +828,35 @@
       renderRunDetailPreserveScroll(state.selectedRun);
     }
 
+    async function refreshSpanishTranslation(index) {
+      if (!state.selectedRun || state.selectedRun.source !== 'generated') return;
+      const item = state.selectedRun.items?.[index];
+      if (!item?.transcript) return;
+
+      state.translationLoading[index] = true;
+      renderRunDetailPreserveScroll(state.selectedRun);
+
+      try {
+        const res = await axios.post(`${getBackendBase()}/api/runs/${encodeURIComponent(state.selectedRunId)}/items/${index}/translate`, {
+          language: 'Spanish',
+          languageCode: 'es',
+          force: true
+        }, { timeout: 30000 });
+
+        item.translations ||= {};
+        item.translations.es = res.data.translation;
+        state.translationVisibility[index] = true;
+      } catch (error) {
+        const message = error?.response?.data?.error || error.message;
+        el('runDetail').innerHTML = `<div class="detail-empty">Failed to refresh Spanish translation: ${escapeHtml(message)}</div>`;
+        return;
+      } finally {
+        delete state.translationLoading[index];
+      }
+
+      renderRunDetailPreserveScroll(state.selectedRun);
+    }
+
     function openRunsView() {
       navigate('home');
       refreshRuns();
@@ -856,6 +895,7 @@
     window.confirmDeleteSelectedRun = confirmDeleteSelectedRun;
     window.closeSettingsModal = closeSettingsModal;
     window.toggleSpanishTranslation = toggleSpanishTranslation;
+    window.refreshSpanishTranslation = refreshSpanishTranslation;
 
     renderAudioList();
     renderRuns();

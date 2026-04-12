@@ -301,6 +301,7 @@ app.post('/api/runs/:fileName/items/:index/translate', async (req, res) => {
   const itemIndex = Number.parseInt(req.params.index || '', 10);
   const language = String(req.body?.language || 'Spanish').trim();
   const languageCode = String(req.body?.languageCode || 'es').trim().toLowerCase();
+  const force = Boolean(req.body?.force);
 
   if (!filePath) {
     return res.status(404).json({ error: 'Generated transcript not found.' });
@@ -333,7 +334,7 @@ app.post('/api/runs/:fileName/items/:index/translate', async (req, res) => {
 
     item.translations ||= {};
 
-    if (item.translations[languageCode]?.text) {
+    if (!force && item.translations[languageCode]?.text) {
       return res.json({
         ok: true,
         reused: true,
@@ -347,7 +348,17 @@ app.post('/api/runs/:fileName/items/:index/translate', async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: `Translate French learning material into ${language}. Keep the original meaning and preserve answer labels such as A., B., C., and D. Return only the translated text.`
+          content: `Translate the provided French text into ${language}.
+
+Important rules:
+- Translate literally and faithfully.
+- Do not answer the exercise.
+- Do not summarize.
+- Do not transform the text into multiple-choice answers unless the source already contains them.
+- Preserve the full structure and meaning of the source text.
+- Preserve labels such as A., B., C., D., a., b., c., d. exactly when present.
+- Preserve final comprehension questions as questions, translated into ${language}.
+- Return only the translated text.`
         },
         {
           role: 'user',
@@ -374,6 +385,7 @@ app.post('/api/runs/:fileName/items/:index/translate', async (req, res) => {
     res.json({
       ok: true,
       reused: false,
+      refreshed: force,
       translation: item.translations[languageCode]
     });
   } catch (error) {
